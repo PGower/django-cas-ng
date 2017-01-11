@@ -33,12 +33,17 @@ from .utils import (get_cas_client, get_service_url,
 
 __all__ = ['login', 'logout', 'callback']
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def login(request, next_page=None, required=False):
     """Forwards to CAS login URL or verifies CAS ticket"""
     service_url = get_service_url(request, next_page)
+    logger.info('CAS Service Url: {}'.format(service_url))
     client = get_cas_client(service_url=service_url)
 
     if not next_page:
@@ -46,19 +51,23 @@ def login(request, next_page=None, required=False):
 
     if request.method == 'POST' and request.POST.get('logoutRequest'):
         clean_sessions(client, request)
+        logger.info('at django-cas-ng.login but logoutRequest is set')
         return HttpResponseRedirect(next_page)
 
     if request.user.is_authenticated():
         if settings.CAS_LOGGED_MSG is not None:
             message = settings.CAS_LOGGED_MSG % request.user.get_username()
+            logger.info(message)
             messages.success(request, message)
         return HttpResponseRedirect(next_page)
 
     ticket = request.GET.get('ticket')
+    logger.debug('Retrieved Ticket: {}'.format(ticket))
     if ticket:
         user = authenticate(ticket=ticket,
                             service=service_url,
                             request=request)
+        logger.info('User: {} authenticated.'.format(user.username))
         pgtiou = request.session.get("pgtiou")
         if user is not None:
             if not request.session.exists(request.session.session_key):
@@ -87,13 +96,16 @@ def login(request, next_page=None, required=False):
             if settings.CAS_LOGIN_MSG is not None:
                 name = user.get_username()
                 message = settings.CAS_LOGIN_MSG % name
+                logger.info(message)
                 messages.success(request, message)
             return HttpResponseRedirect(next_page)
         elif settings.CAS_RETRY_LOGIN or required:
             return HttpResponseRedirect(client.get_login_url())
         else:
+            logger.error('Permission Denied: Login Failed.')
             raise PermissionDenied(_('Login failed.'))
     else:
+        logger.info('Redirecting to: {}'.format(client.get_login_url()))
         return HttpResponseRedirect(client.get_login_url())
 
 
