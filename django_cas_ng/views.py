@@ -67,7 +67,7 @@ def login(request, next_page=None, required=False):
         user = authenticate(ticket=ticket,
                             service=service_url,
                             request=request)
-        logger.info('User: {} authenticated.'.format(user.username))
+        logger.info('User: {} authenticated.'.format(user))
         pgtiou = request.session.get("pgtiou")
         if user is not None:
             if not request.session.exists(request.session.session_key):
