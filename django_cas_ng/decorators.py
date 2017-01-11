@@ -14,6 +14,10 @@ from django.http import HttpResponseRedirect
 from django.core.exceptions import PermissionDenied
 from django.utils.http import urlquote
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 __all__ = ['login_required', 'permission_required', 'user_passes_test']
 
 
@@ -33,6 +37,7 @@ def user_passes_test(test_func, login_url=None,
             if test_func(request.user):
                 return view_func(request, *args, **kwargs)
             elif request.user.is_authenticated():
+                logger.error('Permission Denied')
                 raise PermissionDenied
             else:
                 path = '%s?%s=%s' % (login_url, redirect_field_name,

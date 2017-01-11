@@ -9,6 +9,9 @@ from cas import CASError
 
 SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
 
+import logging 
+
+logger = logging.getLogger(__name__)
 
 class ProxyError(ValueError):
     pass
@@ -46,6 +49,7 @@ class ProxyGrantingTicket(models.Model):
         try:
             pgt = cls.objects.get(user=request.user, session_key=request.session.session_key).pgt
         except cls.DoesNotExist:
+            logger.error('Proxy Error: INVALID_TICKET - No proxy ticket found for this HttpRequest object')
             raise ProxyError(
                 "INVALID_TICKET",
                 "No proxy ticket found for this HttpRequest object"
@@ -57,9 +61,11 @@ class ProxyGrantingTicket(models.Model):
                 return client.get_proxy_ticket(pgt, service)
             # change CASError to ProxyError nicely
             except CASError as error:
+                logger.exception(str(CASError))
                 raise ProxyError(*error.args)
             # juste embed other errors
             except Exception as e:
+                logger.exception(str(e))
                 raise ProxyError(e)
 
 

@@ -17,6 +17,10 @@ from django.utils.deprecation import MiddlewareMixin
 
 from .views import login as cas_login, logout as cas_logout
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 __all__ = ['CASMiddleware']
 
 
@@ -56,6 +60,7 @@ class CASMiddleware(MiddlewareMixin):
             if request.user.is_staff:
                 return None
             else:
+                logger.error('Permission Denied: {}'.format(_('You do not have staff privileges.')))
                 raise PermissionDenied(_('You do not have staff privileges.'))
         params = urllib_parse.urlencode({REDIRECT_FIELD_NAME: request.get_full_path()})
         return HttpResponseRedirect(reverse(cas_login) + '?' + params)
